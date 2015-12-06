@@ -22,6 +22,7 @@ exports.KeyHandlerForCustomizations = KeyHandlerForCustomizations;
 exports.addKeyCustomizationLayer = addKeyCustomizationLayer;
 exports.removeKeyCustomizationLayer = removeKeyCustomizationLayer;
 exports.getKeyCustomizationLayer = getKeyCustomizationLayer;
+exports.getKeyHandlers = getKeyHandlers;
 
 // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
@@ -71,6 +72,21 @@ function allCommandKeyBindings(ed) {
     }));
 }
 
+function convertKeysEmacsToGeneric(keys) {
+  return (keys || "")
+         .replace(/c-/gi, 'ctrl-')
+         .replace(/m-/gi, 'alt-')
+         .replace(/cmd-/gi, 'command-')
+         .replace(/s-/gi, 'shift-');
+}
+
+function convertKeysGenericToEmacs(keys) {
+  return (keys || "")
+          .replace(/ctrl-/gi, "c-")
+          .replace(/alt-/gi, "m-")
+          .replace(/shift-/gi, "s-")
+          .replace(/command-/gi, "cmd-");
+}
 // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 // customized key bindings
 // -=-=-=-=-=-=-=-=-=-=-=-=-
@@ -89,13 +105,8 @@ oop.inherits(KeyHandlerForCustomizations, HashHandler);
     var emacsH = emacs && emacs.handler;
     if (!emacsH) return
     Object.keys(emacsH.commandKeyBinding).forEach(function(k) {
-      var name = emacsH.commandKeyBinding[k].name || emacsH.commandKeyBinding[k].command || emacsH.commandKeyBinding[k];
-      var keys = k.toLowerCase()
-         .replace(/c-/g, 'ctrl-')
-         .replace(/m-/g, 'alt-')
-         .replace(/cmd-/g, 'command-')
-         .replace(/s-/g, 'shift-');
-
+      var name = emacsH.commandKeyBinding[k].name || emacsH.commandKeyBinding[k].command || emacsH.commandKeyBinding[k],
+          keys = convertKeysEmacsToGeneric(k);
       if (!this.commandKeyBinding[keys])
         this.bindKey(keys,name);
     }, this);
@@ -119,7 +130,7 @@ oop.inherits(KeyHandlerForCustomizations, HashHandler);
     var key = keyLib.KEY_MODS[hashId] + keyString;
     var cmd = this.commandKeyBinding[key];
     if (data.$keyChain) {
-        cmd = this.commandKeyBinding[data.$keyChain + " " + key] || cmd;
+        cmd = this.commandKeyBinding[data.$keyChain + " " + key];
     }
 
     if (!cmd || cmd === 'null') return cmd;
@@ -167,6 +178,10 @@ function getCustomizationAwareKeyHandlers(ed, customHandlers) {
   return handlers;
 }
 
+function getKeyHandlers(ed) {
+  return getCustomizationAwareKeyHandlers(ed, ed.keyBinding["ace.ext.keys.customized"]);
+}
+
 function customizedKeysEnabled(ed) {
   // dynamically checks if it is ok to apply key customizations. right now we
   // only check if isearch / occur / jump char behavior is active. This might be
@@ -178,17 +193,26 @@ function customizedKeysEnabled(ed) {
   return true;
 }
 
+function patchData(data) {
+  if (data["patched-by-ace.ext.keys"]) return;
+  data["patched-by-ace.ext.keys"] = true;
+  // keyChain vs $keycHain: emacs handler uses one, the rest uses the latter
+  data.__defineGetter__("keyChain", function() { return convertKeysGenericToEmacs(this.$keyChain); });
+  data.__defineSetter__("keyChain", function(v) { this.$keyChain = convertKeysEmacsToGeneric(v); return v; });
+}
+
 function ensureKeyBindingCustomization() {
   if (!KeyBinding.prototype.$callKeyboardHandlersUnmodified)
     KeyBinding.prototype.$callKeyboardHandlersUnmodified = KeyBinding.prototype.$callKeyboardHandlers;
 
   KeyBinding.prototype.$callKeyboardHandlers = function(hashId, keyString, keyCode, e) {
-    exports.$lastKeyChain = this.$data.keyChain || this.$data.$keyChain;
+    patchData(this.$data);
+    exports.$lastKeyChain = this.$data.$keyChain;
     var custHandlers = this["ace.ext.keys.customized"];
     this.$handlers = getCustomizationAwareKeyHandlers(this.$editor, custHandlers);
     try {
       var res = this.$callKeyboardHandlersUnmodified(hashId, keyString, keyCode, e);
-      if (res) exports.$lastKeyChain = "";
+      // if (res) exports.$lastKeyChain = "";
       return res;
     } finally {
       if (custHandlers) {

@@ -11,7 +11,7 @@
       margin: 0;
       /*position: absolute;*/
       /*top: 2000px; left: 0;*/
-      width: 500px; height: 400px;
+      width: 900px; height: 600px;
     }
   </style>
 </head>
@@ -19,6 +19,8 @@
 
   <div id="dev-area"></div>
   <div id="test-area"></div>
+
+  <script type="text/javascript" src="http://lively-web.org/users/robertkrahn/node-lively2lively/lively2lively-browserified.js?name=pocket-clojure&baseURL=http://localhost:9001&autoload=true"></script></style>
 
   <!-- ace -->
   <script src="http://cdn.jsdelivr.net/ace/1.1.8/noconflict/ace.js"></script>
@@ -29,14 +31,15 @@
   <script src="js/ace.ext.lang.codemarker.js" type="text/javascript" charset="utf-8"></script>
   <script src="js/ace.ext.lang.ast-commands.js" type="text/javascript" charset="utf-8"></script>
   <script src="js/ace.ext.keys.js" type="text/javascript" charset="utf-8"></script>
+  <script src="js/ace.custom-emacs.js" type="text/javascript" charset="utf-8"></script>
+  <script src="js/ace.custom-keys.js" type="text/javascript" charset="utf-8"></script>
   <script src="js/ace.ext.lang.paredit.js" type="text/javascript" charset="utf-8"></script>
 
   <script src="js/pocket-clojure-web.js"></script>
 
   <script src="js/google-patch.js"></script>
   <script>
-    pocket_clojure.editor.setup_by_id("editor");
-
+    // pocket_clojure.editor.setup_by_id("editor");
   </script>
 </body>
 </html>

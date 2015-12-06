@@ -1,6 +1,7 @@
 (ns pocket-clojure.editor
   (:require [medley.core :refer [distinct-by]]
-            cljs_bootstrap.core))
+            cljs_bootstrap.core
+            [pocket-clojure.ast :as ast]))
 
 (defn eval-and-print
   ([code] (eval-and-print code (fn [result])))
@@ -11,10 +12,11 @@
      (fn [success result]
        (if success
          (.log js/console result)
-         (let [cause (some-> result .-cause .-cause)]
-           (if cause
-             (.error js/console cause)
-             (.error js/console result))))
+         (let [cause (or (some-> result .-cause .-cause) (some-> result .-cause))
+               msg (and cause (:message cause))]
+           (if msg
+             (.error js/console msg)
+             (.error js/console (str result)))))
        (if cb (cb result)))))))
 
 
@@ -30,12 +32,22 @@
                           range)
                   code (.. ed -session (getTextRange range))]
               (eval-and-print code)))}
+   
    {:name "pocket-clojure.eval-all"
-    :exec (fn [ed args] (eval-and-print (.getValue ed)))}])
+    :exec (fn [ed args] (eval-and-print (.getValue ed)))}
+   
+   {:name "pocket-clojure.eval-selection-or-last-sexp"
+    :multiSelectAction "forEach",
+    :exec (fn [ed args]
+            (let [code (if (.. ed -selection isEmpty)
+                         (ast/source-for-last-sexp-before-cursor ed)
+                         (.. ed -session getTextRange))]
+              (eval-and-print code)))}])
 
-(def key-bindings {"Command-d" "pocket-clojure.eval",
-                  "Command-s" "pocket-clojure.eval-all",
-                  "Tab" "pareditExpandSnippetOrIndent"})
+(def key-bindings {"Command-d" "pocket-clojure.eval-selection-or-last-sexp"
+                   "Command-s" "pocket-clojure.eval-all"
+                  "Tab" "pareditExpandSnippetOrIndent"
+                   "Command-l" "selectLine"})
 
 (defn prepare-editor
   [editor]
@@ -46,11 +58,18 @@
               :showPrintMargin false
               :fontSize 11}
         mode "ace/mode/clojure"
-        theme "ace/theme/solarized_light"]
+        theme "ace/theme/solarized_light"
+        EditorProto (.. js/ace (require "ace/edit_session") -EditSession -prototype)]
     (doto editor
       (.setTheme theme)
       (.setOptions (clj->js opts))
-      (.. getSession (setMode mode)))))
+      (.. getSession (setMode mode)))
+    (doto EditorProto
+      (.setUseWorker false)
+      (.__defineGetter__ "$useEmacsStyleLineStart" (constantly false))
+      (.__defineSetter__ "$useEmacsStyleLineStart" (constantly false)))
+
+    ))
 
 (defn setup-commands
   [editor]
@@ -68,7 +87,8 @@
         spec (clj->js {"modes" ["ace/mode/clojure"]
                        "commandKeyBinding" key-bindings})]
     (.. editor -keyBinding (addKeyboardHandler emacs-handler))
-    (.. js/ace -ext -keys (addKeyCustomizationLayer "pocket-clojure.keys" spec))))
+    (.. js/ace -ext -keys (addKeyCustomizationLayer "pocket-clojure.keys" spec))
+    (if-let [more-keys (.-moreAceKeys js/window)] (.attach more-keys editor))))
 
 (defn setup-auto-save
   [editor]
