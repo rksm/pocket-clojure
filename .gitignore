@@ -1,0 +1,6 @@
+cljs-bootstrap/
+clojurescript/
+tools.reader/
+target/
+.pocket_clojure/
+.nrepl-port

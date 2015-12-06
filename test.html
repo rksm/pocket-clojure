@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<head lang="en">
+  <meta charset="UTF-8">
+  <title></title>
+  <style type="text/css" media="screen">
+    body {
+      overflow: auto;
+    }
+    #editor {
+      margin: 0;
+      /*position: absolute;*/
+      /*top: 2000px; left: 0;*/
+      width: 500px; height: 400px;
+    }
+  </style>
+</head>
+<body>
+
+  <div id="dev-area"></div>
+  <div id="test-area"></div>
+
+  <!-- ace -->
+  <script src="http://cdn.jsdelivr.net/ace/1.1.8/noconflict/ace.js"></script>
+  <script src="http://cdn.jsdelivr.net/ace/1.1.8/noconflict/ext-language_tools.js" type="text/javascript" charset="utf-8"></script>
+  <script src="http://cdn.jsdelivr.net/ace/1.1.8/noconflict/keybinding-emacs.js" type="text/javascript" charset="utf-8"></script>
+  <script src="js/paredit-bundle.js"></script>
+  <script src="js/ace.improvements.js" type="text/javascript" charset="utf-8"></script>
+  <script src="js/ace.ext.lang.codemarker.js" type="text/javascript" charset="utf-8"></script>
+  <script src="js/ace.ext.lang.ast-commands.js" type="text/javascript" charset="utf-8"></script>
+  <script src="js/ace.ext.keys.js" type="text/javascript" charset="utf-8"></script>
+  <script src="js/ace.ext.lang.paredit.js" type="text/javascript" charset="utf-8"></script>
+
+  <script src="js/pocket-clojure-web.js"></script>
+
+  <script src="js/google-patch.js"></script>
+  <script>
+    pocket_clojure.editor.setup_by_id("editor");
+
+  </script>
+</body>
+</html>
